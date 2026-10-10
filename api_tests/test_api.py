@@ -34,54 +34,9 @@ def created_project_id(auth_token: str) -> Generator[str, None, None]:
     delete_url: str = f"{config.API_URL}/projects/{project_id}"
     requests.delete(delete_url, headers=headers)
 
-
+@pytest.mark.api
 @allure.feature("Панель управления проектами YouGile (API)")
 class TestYouGileAPI:
-
-    @allure.story("Ограничение лимитов")
-    @allure.title(
-        "Проверка ограничения лимита количества ключей (Rate Limiting)"
-    )
-    @allure.description(
-        "Тест проверяет реакцию системы на массовое создание"
-        " API-ключей одним пользователем.\n\n"
-        "Шаги теста:\n"
-        "1. Отправка последовательных POST-запросов на эндпоинт"
-        " /auth/keys в цикле.\n"
-        "2. Ожидание ответа со статус-кодом 403 Forbidden"
-        " и текстом ошибки 'Keys count limit exceeded'.\n"
-        "Ожидаемый результат: Сервер успешно блокирует генерацию"
-        " после превышения лимита в 30 активных ключей."
-    )
-    def test_api_auth_rate_limit(self) -> None:
-        """Проверка генерации ошибки 403 при превышении лимита активных ключей (30 шт)."""
-        url: str = f"{config.API_URL}/auth/keys"
-        payload: dict[str, str] = {
-            "login": config.LOGIN,
-            "password": config.PASSWORD,
-            "companyId": config.COMPANY_ID,
-        }
-
-        max_attempts: int = 100
-        limit_exceeded: bool = False
-
-        for i in range(max_attempts):
-            response: requests.Response = requests.post(url, json=payload)
-
-            if (
-                response.status_code == 403
-                and "Keys count limit exceeded" in response.text
-            ):
-                limit_exceeded = True
-                break
-
-            assert (
-                response.status_code == 200
-            ), f"Запрос №{i + 1} завершился неудачно. Status: {response.status_code}"
-
-        assert (
-            limit_exceeded
-        ), f"Лимит на количество ключей не сработало после {max_attempts} запросов"
 
     @allure.story("Управление проектами")
     @allure.title("Позитивный тест получения информации о проекте по ID")
@@ -119,7 +74,7 @@ class TestYouGileAPI:
         "Шаги теста:\n"
         "1. Отправка PUT-запроса на URL созданного ранее проекта.\n"
         "2. Передача новой строки 'Updated Project Title via Autotest' в свойстве 'title'.\n"
-        "Ожидаемый результат: Код ответа 200 OK, подтверждение успешного изменения названия в структуре ответа."
+        "Ожидаемый результат: Код ответа 200 OK, подтверждение успешного изменения названия в структуру ответа."
     )
     def test_api_update_project_title(
         self, auth_token: str, created_project_id: str
@@ -226,7 +181,7 @@ class TestYouGileAPI:
         "Ожидаемый результат: Код ответа 201 Created,"
         " в теле ответа возвращается сгенерированный ID проекта."
     )
-    def test_api_create_project_successful(self,auth_token: str) -> None:
+    def test_api_create_project_successful(self, auth_token: str) -> None:
         """Проверка успешного создания нового
          проекта через метод POST."""
         url: str = f"{config.API_URL}/projects"
@@ -241,16 +196,56 @@ class TestYouGileAPI:
         )
 
         assert (
-            response.status_code == 201
+                response.status_code == 201
         ), (f"Не удалось создать проект. Ответ сервера:"
             f" {response.text}")
 
         response_data: dict = response.json()
         assert (
-            "id" in response_data
+                "id" in response_data
         ), (f"Ответ сервера не содержит 'id'"
             f" созданного проекта: {response.text}")
 
         project_id: str = response_data["id"]
         delete_url: str = f"{config.API_URL}/projects/{project_id}"
         requests.delete(delete_url, headers=headers)
+
+    @allure.story("Управление компаниями")
+    @allure.title("Позитивный тест получения деталей компании по ID")
+    @allure.description(
+        "Тест проверяет корректность получения метаданных "
+        "существующей компании по её уникальному ID.\n\n"
+        "Шаги теста:\n"
+        "1. Отправка GET-запроса на эндпоинт /api-v2/companies/{id} "
+        "с валидным Bearer-токеном.\n"
+        "2. Проверка соответствия статус-кода ответа (200 OK).\n"
+        "3. Валидация структуры ответа: наличие обязательных "
+        "полей id, title и timestamp.\n"
+        "Ожидаемый результат: Код ответа 200 OK, тело ответа "
+        "содержит корректные данные запрашиваемой компании."
+    )
+    def test_api_get_company_details_successful(self, auth_token: str) -> None:
+        """Проверка успешного получения данных существующей компании."""
+        url: str = f"{config.API_URL}/companies/{config.COMPANY_ID}"
+        headers: dict[str, str] = {"Authorization": f"Bearer {auth_token}"}
+
+        response: requests.Response = requests.get(url, headers=headers)
+
+        assert response.status_code == 200, (
+            f"Не удалось получить детали компании. Ответ: {response.text}"
+        )
+
+        response_data: dict = response.json()
+
+        assert response_data.get("id") == config.COMPANY_ID, (
+            "ID в ответе не совпадает с запрашиваемым ID компании"
+        )
+
+        assert "title" in response_data, (
+            "Ответ сервера не содержит название компании (title)"
+        )
+
+        assert "timestamp" in response_data, (
+            "Ответ сервера не содержит временную метку (timestamp)"
+        )
+

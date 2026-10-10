@@ -34,5 +34,3 @@ if (Test-Path $temp_history) {
 allure generate $results -o $report --clean
 
 allure open $report
-
-

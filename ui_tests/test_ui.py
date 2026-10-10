@@ -35,7 +35,7 @@ def authenticated_dashboard(driver: WebDriver) -> DashboardPage:
     dashboard_page.wait_for_load()
     return dashboard_page
 
-
+@pytest.mark.ui
 @allure.feature("Интерфейс панели управления YouGile (UI)")
 class TestYouGileUI:
 

@@ -83,6 +83,12 @@ class DashboardPage(BasePage):
         "//*[contains(@class, 'sidebar') or contains(@class, 'menu')]"
         "//*[contains(text(), 'Моя компания')] | //*[text()='Моя компания']",
     )
+    COMPANY_HEADER_TITLE = (
+        By.XPATH,
+        "//h1[contains(@class, 'title') or contains(@class, 'name')] | "
+        "//*[contains(@class, 'company-page')]//h2 | "
+        "//*[contains(@class, 'header') or contains(@class, 'top')]//*[contains(@class, 'text')]"
+    )
     CREATE_PROJECT_BUTTON = (
         By.XPATH,
         "//*[contains(text(), 'Добавить проект')]",
